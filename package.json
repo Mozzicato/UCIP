@@ -12,7 +12,10 @@
     "dev:client": "npm run dev -w client",
     "dev:api": "npm run dev -w server",
     "build": "npm run build -w client",
-    "seed": "npm run seed -w server"
+    "build:all": "npm run build -w client && npm install --workspaces=false -w server --only=production",
+    "start": "npm start -w server",
+    "seed": "npm run seed -w server",
+    "deploy": "vercel --prod"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

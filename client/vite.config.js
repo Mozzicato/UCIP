@@ -12,4 +12,21 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'geo': ['leaflet', 'leaflet.heat'],
+        }
+      }
+    }
+  },
+  preview: {
+    port: 4173,
+  }
 });
