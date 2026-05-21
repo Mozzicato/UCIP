@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UCIP — Urban Climate Intelligence Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #050a12;
+      --bg-elevated: #0a1220;
+      --fg: #f0f4f8;
+      --muted: #6b7a8f;
+      --accent: #00d4aa;
+      --accent-dim: rgba(0, 212, 170, 0.15);
+      --danger: #ff5c39;
+      --danger-dim: rgba(255, 92, 57, 0.15);
+      --warning: #ffb800;
+      --card: #0d1627;
+      --border: #1a2535;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      overflow-x: hidden;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Background patterns */
+    .bg-grid {
+      background-image: 
+        linear-gradient(rgba(0, 212, 170, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 170, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+
+    .bg-radial {
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 212, 170, 0.12), transparent);
+    }
+
+    /* Slide system */
+    .slide {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .slide.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+      .animate-in, .stagger-item {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    @keyframes scan {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+
+    .animate-in {
+      animation: fadeInUp 0.6s ease forwards;
+      opacity: 0;
+    }
+
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+    .delay-5 { animation-delay: 0.5s; }
+    .delay-6 { animation-delay: 0.6s; }
+
+    /* Interactive elements */
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg);
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 212, 170, 0.3);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* Data cards */
+    .data-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .data-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    /* Score visualization */
+    .score-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .score-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1s ease;
+    }
+
+    /* Table styles */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .data-table tr:hover td {
+      background: rgba(0, 212, 170, 0.03);
+    }
+
+    /* Nav dots */
+    .nav-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .nav-dot.active {
+      background: var(--accent);
+      transform: scale(1.3);
+    }
+
+    .nav-dot:hover:not(.active) {
+      background: var(--muted);
+    }
+
+    .nav-dot:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    /* USSD demo */
+    .ussd-screen {
+      background: #1a1a2e;
+      border-radius: 20px;
+      padding: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #00ff88;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    }
+
+    /* Flow diagram */
+    .flow-node {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .flow-node:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(0, 212, 170, 0.2);
+    }
+
+    .flow-connector {
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--border), var(--accent));
+    }
+
+    /* Map placeholder */
+    .map-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .map-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(0, 212, 170, 0.1));
+    }
+
+    /* Heat zones */
+    .heat-zone {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(20px);
+      opacity: 0.6;
+      animation: pulse 3s ease-in-out infinite;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .slide {
+        padding: 80px 20px 40px;
+      }
+      
+      .data-table {
+        font-size: 14px;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 10px 12px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+
+      html {
+        font-size: 12px !important;
+        background: var(--bg) !important;
+        overflow: visible;
+      }
+
+      body {
+        min-height: auto;
+        margin: 0 !important;
+        background: var(--bg) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      nav {
+        display: none !important;
+      }
+
+      main {
+        display: block;
+      }
+
+      .slide,
+      .slide.visible,
+      .animate-in,
+      .stagger-item {
+        opacity: 1 !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      .slide {
+        box-sizing: border-box;
+        width: 297mm;
+        height: 210mm;
+        min-height: 210mm;
+        break-after: page;
+        page-break-after: always;
+        overflow: hidden;
+        padding: 8mm 10mm !important;
+      }
+
+      .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .slide > div {
+        --print-scale: 1;
+        width: calc(100% / var(--print-scale)) !important;
+        max-width: none !important;
+        min-height: auto !important;
+        margin: 0 auto !important;
+        padding-top: 0 !important;
+        padding-right: 0 !important;
+        padding-bottom: 0 !important;
+        padding-left: 0 !important;
+        justify-content: flex-start !important;
+        transform-origin: top center !important;
+        transform: scale(var(--print-scale)) !important;
+      }
+
+      .bg-grid {
+        background-image:
+          linear-gradient(rgba(0, 212, 170, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 212, 170, 0.04) 1px, transparent 1px);
+      }
+
+      .overflow-x-auto {
+        overflow: visible !important;
+      }
+
+      .grid,
+      .flex {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .data-card,
+      .flow-node,
+      .ussd-screen,
+      table,
+      thead,
+      tbody,
+      tr,
+      td,
+      th,
+      blockquote,
+      svg {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .data-card,
+      .flow-node,
+      .ussd-screen {
+        padding: 12px !important;
+      }
+
+      .p-8 {
+        padding: 1rem !important;
+      }
+
+      .p-6 {
+        padding: 0.875rem !important;
+      }
+
+      .p-4 {
+        padding: 0.75rem !important;
+      }
+
+      .py-8 {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+      }
+
+      .mb-12 {
+        margin-bottom: 1.25rem !important;
+      }
+
+      .mb-8 {
+        margin-bottom: 1rem !important;
+      }
+
+      .mb-6 {
+        margin-bottom: 0.875rem !important;
+      }
+
+      .mb-4 {
+        margin-bottom: 0.625rem !important;
+      }
+
+      .mt-4 {
+        margin-top: 0.625rem !important;
+      }
+
+      .my-4 {
+        margin-top: 0.625rem !important;
+        margin-bottom: 0.625rem !important;
+      }
+
+      .gap-8 {
+        gap: 1rem !important;
+      }
+
+      .gap-6 {
+        gap: 0.875rem !important;
+      }
+
+      .gap-4 {
+        gap: 0.75rem !important;
+      }
+
+      .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 0.625rem !important;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 8px 10px;
+      }
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
+  </style>
+</head>
+<body class="bg-grid">
+  <!-- Navigation -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-[var(--bg)]/80 backdrop-blur-md border-b border-[var(--border)]" role="navigation" aria-label="Slide navigation">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-[var(--accent)] flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2.5" stroke-linecap="round">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <span class="font-semibold tracking-tight">UCIP</span>
+      </div>
+      
+      <div class="flex items-center gap-2" id="navDots" role="tablist" aria-label="Presentation slides">
+        <!-- Generated by JS -->
+      </div>
+      
+      <div class="mono text-xs text-[var(--muted)]">
+        <span id="currentSlide">1</span> / <span id="totalSlides">11</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main id="slides">
+    <!-- SLIDE 1 — The Wake-Up Call -->
+    <section class="slide" data-slide="1" aria-label="The Wake-Up Call">
+      <div class="bg-radial absolute inset-0 pointer-events-none"></div>
+      <div class="max-w-5xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center relative z-10">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--danger-dim)] text-[var(--danger)] mb-6">
+            SLIDE 1 — THE WAKE-UP CALL
+          </span>
+        </div>
+        
+        <blockquote class="text-4xl md:text-6xl font-bold leading-tight mb-8 animate-in delay-1">
+          <span class="text-[var(--danger)]">Lagos hit 36°C</span> this Harmattan.
+        </blockquote>
+        
+        <div class="grid md:grid-cols-3 gap-4 mb-12 animate-in delay-2">
+          <div class="data-card border-l-2 border-l-[var(--danger)]">
+            <p class="text-[var(--muted)] text-sm mb-2">Flooding</p>
+            <p class="font-semibold">Wiped out Oshodi market — again.</p>
+          </div>
+          <div class="data-card border-l-2 border-l-[var(--warning)]">
+            <p class="text-[var(--muted)] text-sm mb-2">Deforestation</p>
+            <p class="font-semibold">Mushin lost 30% tree cover in one dry season.</p>
+          </div>
+          <div class="data-card border-l-2 border-l-[var(--accent)]">
+            <p class="text-[var(--muted)] text-sm mb-2">The truth</p>
+            <p class="font-semibold">Nobody saw it coming.</p>
+          </div>
+        </div>
+        
+        <div class="bg-[var(--danger-dim)] border border-[var(--danger)]/30 rounded-lg p-6 animate-in delay-3">
+          <p class="text-lg md:text-xl font-medium text-[var(--danger)]">
+            Not the residents. Not the planners. Not the government.
+          </p>
+          <p class="text-[var(--muted)] mt-2">
+            Because we have <strong class="text-[var(--fg)]">no neighbourhood-level climate data</strong> — and even where it exists, <strong class="text-[var(--fg)]">no one is told what to do about it.</strong>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2 — The Problem -->
+    <section class="slide" data-slide="2" aria-label="The Problem">
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--danger-dim)] text-[var(--danger)] mb-6">
+            SLIDE 2 — THE PROBLEM
+          </span>
+        </div>
+        
+        <h2 class="text-3xl md:text-5xl font-bold mb-4 animate-in delay-1">
+          Lagos is flying blind — and acting blind
+        </h2>
+        
+        <div class="overflow-x-auto mb-8 animate-in delay-2">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Gap</th>
+                <th>Reality</th>
+              </tr>
+            </thead>
+            <tbody id="problemTable">
+              <!-- Generated by JS -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-6 animate-in delay-3">
+          <p class="text-[var(--muted)] mb-2">Result:</p>
+          <p class="text-lg">
+            <strong class="text-[var(--fg)]">22 million people</strong> make daily decisions — where to work, where to sleep, which road to take — with <span class="text-[var(--danger)]">zero local climate awareness</span>.
+          </p>
+          <p class="text-lg mt-2">
+            Planners allocate <strong class="text-[var(--fg)]">₦ billions</strong> in intervention budgets with no data to prioritise — and <span class="text-[var(--danger)]">no costed menu of actions</span> tied to that data.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3 — Our Solution -->
+    <section class="slide" data-slide="3" aria-label="Our Solution">
+      <div class="bg-radial absolute inset-0 pointer-events-none"></div>
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center relative z-10">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 3 — OUR SOLUTION
+          </span>
+        </div>
+        
+        <h1 class="text-5xl md:text-7xl font-bold mb-2 animate-in delay-1">
+          <span class="text-[var(--accent)]">UCIP</span>
+        </h1>
+        <p class="text-xl md:text-2xl text-[var(--muted)] mb-8 animate-in delay-1">Urban Climate Intelligence Platform</p>
+        
+        <p class="text-lg md:text-xl max-w-3xl mb-8 animate-in delay-2">
+          One platform. Three life-saving layers. One solutions engine. Every neighbourhood. Every phone.
+        </p>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-in delay-3" id="solutionCards">
+          <!-- Generated by JS -->
+        </div>
+        
+        <div class="grid md:grid-cols-2 gap-4 animate-in delay-4">
+          <div class="data-card">
+            <p class="text-sm text-[var(--muted)] mb-2">The difference</p>
+            <p class="font-medium">
+              UCIP doesn't stop at <span class="text-[var(--danger)]">"your area is at 8/10 risk"</span>. 
+              It tells you <span class="text-[var(--accent)]">"here are 6 things you can do this week, and here's what each costs."</span>
+            </p>
+          </div>
+          <div class="data-card">
+            <p class="text-sm text-[var(--muted)] mb-2">Inclusion-first by design</p>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+                  <rect x="5" y="2" width="14" height="20" rx="2"/>
+                  <line x1="12" y1="18" x2="12" y2="18"/>
+                </svg>
+                <span class="text-sm">Smartphone PWA</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M7 8h10M7 12h6"/>
+                </svg>
+                <span class="text-sm mono">USSD *384*UCIP#</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4 — How It Works -->
+    <section class="slide" data-slide="4" aria-label="How It Works">
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 4 — HOW IT WORKS
+          </span>
+        </div>
+        
+        <!-- Flow diagram -->
+        <div class="mb-12 animate-in delay-1">
+          <div class="flex flex-col lg:flex-row items-center justify-center gap-4">
+            <div class="flow-node flex-1 max-w-xs">
+              <div class="text-xs text-[var(--muted)] mb-1">CITIZEN REPORTS</div>
+              <div class="font-semibold">App + USSD</div>
+            </div>
+            <div class="flow-connector hidden lg:block"></div>
+            <div class="flow-node flex-1 max-w-xs">
+              <div class="text-xs text-[var(--muted)] mb-1">SATELLITE BASELINES</div>
+              <div class="font-semibold mono text-sm">MODIS · Landsat</div>
+            </div>
+            <div class="flow-connector hidden lg:block"></div>
+            <div class="flow-node flex-1 max-w-xs">
+              <div class="text-xs text-[var(--muted)] mb-1">LIVE WEATHER</div>
+              <div class="font-semibold mono text-sm">Open-Meteo API</div>
+            </div>
+          </div>
+          
+          <div class="flex justify-center my-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+              <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
+          </div>
+          
+          <div class="flex justify-center">
+            <div class="flow-node bg-[var(--accent-dim)] border-[var(--accent)] px-8 py-4">
+              <div class="text-xs text-[var(--accent)] mb-1">SCORING ENGINE</div>
+              <div class="mono text-sm">heat = 0.4·LST + 0.35·citizen + 0.25·weather</div>
+            </div>
+          </div>
+          
+          <div class="flex justify-center my-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2">
+              <path d="M12 5v14M19 12l-7 7-7-7"/>
+            </svg>
+          </div>
+          
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="flow-node text-center">
+              <div class="text-lg mb-1">📍</div>
+              <div class="text-sm font-medium">Live Map</div>
+              <div class="text-xs text-[var(--muted)]">Leaflet.js</div>
+            </div>
+            <div class="flow-node text-center">
+              <div class="text-lg mb-1">🔔</div>
+              <div class="text-sm font-medium">Alerts</div>
+              <div class="text-xs text-[var(--muted)]">Push + SMS</div>
+            </div>
+            <div class="flow-node text-center">
+              <div class="text-lg mb-1">📊</div>
+              <div class="text-sm font-medium">Planner</div>
+              <div class="text-xs text-[var(--muted)]">Dashboard</div>
+            </div>
+            <div class="flow-node text-center border-[var(--accent)]">
+              <div class="text-lg mb-1">🛠</div>
+              <div class="text-sm font-medium text-[var(--accent)]">Solutions</div>
+              <div class="text-xs text-[var(--muted)]">Costed actions</div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- The Loop -->
+        <div class="animate-in delay-2">
+          <h3 class="text-xl font-semibold mb-4">The Loop — in 5 steps</h3>
+          <div class="grid md:grid-cols-5 gap-4" id="loopSteps">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5 — Under the Hood -->
+    <section class="slide" data-slide="5" aria-label="Under the Hood">
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 5 — UNDER THE HOOD
+          </span>
+        </div>
+        
+        <div class="grid lg:grid-cols-2 gap-8">
+          <div class="animate-in delay-1">
+            <h3 class="text-xl font-semibold mb-4">Technology Stack</h3>
+            <div class="overflow-x-auto">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Layer</th>
+                    <th>Technology</th>
+                  </tr>
+                </thead>
+                <tbody id="techTable">
+                  <!-- Generated by JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="animate-in delay-2">
+            <h3 class="text-xl font-semibold mb-4">Scoring Algorithms</h3>
+            <div class="space-y-4">
+              <div class="data-card">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-[var(--danger)]">Heat Score</span>
+                </div>
+                <code class="mono text-xs text-[var(--muted)]">0.40 × satellite LST + 0.35 × citizen severity + 0.25 × weather temp</code>
+              </div>
+              <div class="data-card">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-[var(--warning)]">Flood Risk</span>
+                </div>
+                <code class="mono text-xs text-[var(--muted)]">0.30 × rainfall + 0.25 × historical + 0.25 × elevation + 0.20 × citizen</code>
+              </div>
+              <div class="data-card">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-sm text-[var(--accent)]">NDVI Health</span>
+                </div>
+                <code class="mono text-xs text-[var(--muted)]">baseline NDVI − clearing-report penalty (0 → 1 scale)</code>
+              </div>
+            </div>
+            
+            <div class="mt-4 p-4 bg-[var(--bg-elevated)] rounded-lg border border-[var(--border)]">
+              <p class="text-sm text-[var(--muted)]">
+                Citizen reports are <strong class="text-[var(--fg)]">time-decayed</strong> (half-life 2h) so fresh ground-truth always beats stale data.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6 — Solutions Engine -->
+    <section class="slide" data-slide="6" aria-label="The Solutions Engine">
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-4">
+            SLIDE 6 — THE SOLUTIONS ENGINE
+          </span>
+        </div>
+        
+        <blockquote class="text-xl md:text-2xl text-[var(--muted)] italic mb-6 animate-in delay-1">
+          "Data without action is just a depressing dashboard."
+        </blockquote>
+        
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 mb-6 animate-in delay-2">
+          <div class="flex items-center gap-4 mb-4">
+            <span class="text-lg font-semibold">Example: Mushin</span>
+            <span class="px-2 py-1 rounded text-xs bg-[var(--danger-dim)] text-[var(--danger)]">Heat 8.2</span>
+            <span class="px-2 py-1 rounded text-xs bg-[var(--warning)]/20 text-[var(--warning)]">NDVI 0.12</span>
+          </div>
+          
+          <div class="grid md:grid-cols-2 gap-6">
+            <div>
+              <h4 class="text-sm font-semibold text-[var(--accent)] mb-3 flex items-center gap-2">
+                <span>🏠</span> Society — immediate
+              </h4>
+              <div class="space-y-3" id="societySolutions">
+                <!-- Generated by JS -->
+              </div>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-[var(--muted)] mb-3 flex items-center gap-2">
+                <span>🏛</span> Government — short-term
+              </h4>
+              <div class="space-y-3" id="govtSolutions">
+                <!-- Generated by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid md:grid-cols-3 gap-4 animate-in delay-3">
+          <div class="data-card">
+            <p class="text-sm text-[var(--muted)] mb-2">For Planners</p>
+            <p class="font-medium text-sm">Ready-to-cost budget line items — no consultant required.</p>
+          </div>
+          <div class="data-card">
+            <p class="text-sm text-[var(--muted)] mb-2">For CDAs</p>
+            <p class="font-medium text-sm">What the community can do this Saturday — without waiting.</p>
+          </div>
+          <div class="data-card">
+            <p class="text-sm text-[var(--muted)] mb-2">Data-Triggered</p>
+            <p class="font-medium text-sm">If heat &lt; 5.5, cool-roof isn't recommended — budget isn't wasted.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7 — What We're Building -->
+    <section class="slide" data-slide="7" aria-label="What We're Building">
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 7 — WHAT WE'RE BUILDING
+          </span>
+        </div>
+        
+        <p class="text-lg text-[var(--muted)] max-w-3xl mb-8 animate-in delay-1">
+          Every signal below is wired into the codebase. The prototype runs the full loop end-to-end — we're now hardening, scaling, and partnering.
+        </p>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 animate-in delay-2" id="buildProgress">
+          <!-- Generated by JS -->
+        </div>
+        
+        <div class="data-card border-[var(--accent)] animate-in delay-3">
+          <h4 class="font-semibold mb-2">Where we go next</h4>
+          <p class="text-[var(--muted)]">
+            Swapping satellite <em>baselines</em> for live Google Earth Engine batch, wiring production SMS/push dispatch, and a first ward pilot with a Lagos CDA partner.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8 — The Market -->
+    <section class="slide" data-slide="8" aria-label="The Market">
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 8 — THE MARKET
+          </span>
+        </div>
+        
+        <h2 class="text-3xl md:text-4xl font-bold mb-8 animate-in delay-1">Who needs this?</h2>
+        
+        <div class="grid md:grid-cols-2 gap-6 mb-8 animate-in delay-2">
+          <div class="data-card text-center py-8">
+            <div class="text-5xl md:text-6xl font-bold text-[var(--danger)] mb-2">22M+</div>
+            <p class="text-[var(--muted)]">Lagos residents with zero local climate data</p>
+          </div>
+          <div class="data-card text-center py-8">
+            <div class="text-5xl md:text-6xl font-bold text-[var(--accent)] mb-2">₦500B+</div>
+            <p class="text-[var(--muted)]">Lagos State annual budget with no granular risk data</p>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto mb-8 animate-in delay-3">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Segment</th>
+                <th>Need</th>
+                <th>Our Offer</th>
+              </tr>
+            </thead>
+            <tbody id="marketTable">
+              <!-- Generated by JS -->
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="data-card animate-in delay-4">
+          <h4 class="font-semibold mb-2">Scale Path</h4>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="px-2 py-1 bg-[var(--accent-dim)] text-[var(--accent)] rounded">Lagos MVP</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            <span class="px-2 py-1 bg-[var(--border)] rounded">36 States</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+            <span class="px-2 py-1 bg-[var(--border)] rounded">West Africa</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9 — Impact Vision -->
+    <section class="slide" data-slide="9" aria-label="Impact Vision">
+      <div class="bg-radial absolute inset-0 pointer-events-none"></div>
+      <div class="max-w-6xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center relative z-10">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 9 — IMPACT VISION
+          </span>
+        </div>
+        
+        <h2 class="text-2xl md:text-3xl font-bold mb-8 animate-in delay-1">
+          What does winning look like in 12 months?
+        </h2>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 animate-in delay-2" id="impactMilestones">
+          <!-- Generated by JS -->
+        </div>
+        
+        <div class="bg-[var(--accent-dim)] border border-[var(--accent)]/30 rounded-lg p-6 animate-in delay-3">
+          <p class="text-lg md:text-xl italic">
+            "UCIP — climate intelligence for everyone."
+          </p>
+          <p class="text-[var(--accent)] mt-2">
+            Not everyone with a smartphone. <strong>Everyone.</strong>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10 — What We're Asking For -->
+    <section class="slide" data-slide="10" aria-label="What We're Asking For">
+      <div class="max-w-4xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center">
+        <div class="animate-in">
+          <span class="inline-block px-3 py-1 rounded-full text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] mb-6">
+            SLIDE 10 — WHAT WE'RE ASKING FOR
+          </span>
+        </div>
+        
+        <h2 class="text-3xl md:text-4xl font-bold mb-8 animate-in delay-1">
+          From the judges, today:
+        </h2>
+        
+        <div class="space-y-4 animate-in delay-2">
+          <div class="data-card flex items-start gap-4 hover:border-[var(--accent)] transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Your score</h4>
+              <p class="text-[var(--muted)]">So we can keep building.</p>
+            </div>
+          </div>
+          
+          <div class="data-card flex items-start gap-4 hover:border-[var(--accent)] transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Your network</h4>
+              <p class="text-[var(--muted)]">Lagos State government, NGO partners, GIS data custodians.</p>
+            </div>
+          </div>
+          
+          <div class="data-card flex items-start gap-4 hover:border-[var(--accent)] transition-colors">
+            <div class="w-10 h-10 rounded-lg bg-[var(--accent)] flex items-center justify-center flex-shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2.5">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="font-semibold mb-1">Your feedback</h4>
+              <p class="text-[var(--muted)]">What's the one thing that would make a planner trust this data enough to cut a budget line from it?</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11 — Thank You -->
+    <section class="slide" data-slide="11" aria-label="Thank You">
+      <div class="bg-radial absolute inset-0 pointer-events-none"></div>
+      <div class="max-w-4xl mx-auto px-6 pt-32 pb-20 flex-1 flex flex-col justify-center items-center text-center relative z-10">
+        <div class="animate-in">
+          <div class="w-20 h-20 rounded-2xl bg-[var(--accent)] flex items-center justify-center mx-auto mb-8">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" stroke-width="2" stroke-linecap="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+          </div>
+        </div>
+        
+        <h1 class="text-5xl md:text-7xl font-bold mb-4 animate-in delay-1">
+          <span class="text-[var(--accent)]">UCIP</span>
+        </h1>
+        
+        <p class="text-xl md:text-2xl text-[var(--muted)] mb-8 animate-in delay-2">
+          Climate intelligence for every Lagos neighbourhood.
+        </p>
+        
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-lg p-8 mb-8 animate-in delay-3">
+          <p class="text-lg md:text-xl mb-2">
+            <strong class="text-[var(--fg)]">Lagos has 22 million people.</strong>
+          </p>
+          <p class="text-lg md:text-xl text-[var(--accent)]">
+            One platform that sees them — and tells them what to do.
+          </p>
+        </div>
+        
+        <div class="animate-in delay-4">
+          <p class="text-[var(--muted)] mb-4">Team CoolCity</p>
+          <p class="text-sm text-[var(--muted)]">UNILAG National Design Competition 2026</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Data
+    const problemData = [
+      { gap: 'Weather monitoring', reality: 'NiMet gives city-wide averages — Lekki rain warnings reach Ikeja residents' },
+      { gap: 'Heat islands', reality: 'Undetected at ward or neighbourhood scale' },
+      { gap: 'Flood risk', reality: 'No early-warning below LGA level' },
+      { gap: 'Green-space loss', reality: 'Tracked annually, never in real-time' },
+      { gap: 'Vulnerable populations', reality: '40% of Lagosians use feature phones — no app, no data' },
+      { gap: 'What to actually do', reality: 'Even when risk is known, residents and planners have no playbook' }
+    ];
+
+    const solutionData = [
+      { icon: '🔴', title: 'Heat Map', desc: 'Real-time heat-stress scores (0–10) per neighbourhood', users: 'Residents, health workers', color: 'var(--danger)' },
+      { icon: '🌊', title: 'Flood Risk', desc: '6-hour early-warning flood risk dashboards', users: 'Residents, emergency responders', color: 'var(--warning)' },
+      { icon: '🌿', title: 'Green Space Tracker', desc: 'NDVI vegetation health + deforestation alerts', users: 'Planners, community orgs', color: 'var(--accent)' },
+      { icon: '🛠', title: 'Solutions Engine', desc: 'Costed, quantified actions ranked by impact', users: 'Everyone', color: 'var(--accent)' }
+    ];
+
+    const loopSteps = [
+      { num: 1, title: 'Report', desc: 'Resident taps severity on app or dials USSD. GPS auto-tags neighbourhood.' },
+      { num: 2, title: 'Fuse', desc: 'Scoring engine blends report with satellite baselines and live weather every 15 min.' },
+      { num: 3, title: 'Show', desc: 'Heat map, flood-risk, and NDVI layers update live on every screen.' },
+      { num: 4, title: 'Alert', desc: 'When risk crosses threshold, every subscribed resident gets push or SMS.' },
+      { num: 5, title: 'Solve', desc: 'Every flagged area shows ranked list of concrete actions with cost, deadline, KPI.' }
+    ];
+
+    const techData = [
+      { layer: 'Frontend', tech: 'React 18 · Vite · Tailwind CSS · Leaflet.js · PWA' },
+      { layer: 'Backend', tech: 'Node 20 · Express · Zod · node-cron' },
+      { layer: 'Database', tech: 'Supabase · PostgreSQL · PostGIS' },
+      { layer: 'Satellite', tech: 'Google Earth Engine — MODIS LST + Landsat NDVI' },
+      { layer: 'Weather', tech: 'Open-Meteo (keyless, real-time + 6h forecast)' },
+      { layer: 'USSD / SMS', tech: "Africa's Talking" },
+      { layer: 'Push', tech: 'Firebase Cloud Messaging' }
+    ];
+
+    const societySolutions = [
+      { title: 'Cool-roof paint programme', detail: '~900 homes over 6 months', cost: '₦10.8M', kpi: 'Indoor temp ↓ 3°C in 70% of homes' },
+      { title: 'Community cooling hubs', detail: '4 hubs in mosques/schools', cost: '₦1M setup', kpi: '≥200 visitors/hub/day' },
+      { title: 'Drain clearance rota', detail: '6 km monthly via CDA', cost: '₦200k/mo', kpi: '90% free-flow after 20mm rain' }
+    ];
+
+    const govtSolutions = [
+      { title: 'Street tree corridors', detail: '1,800 trees, 14 km over 24 months', cost: '₦27M', kpi: '80% survival at 24 mo' },
+      { title: 'Cool-roof building code', detail: 'SRI ≥ 78 on all new permits', cost: 'Policy', kpi: '100% LASBCA compliance by yr 1' },
+      { title: 'Trunk drainage dredge', detail: '4 km before May rains', cost: '₦72M', kpi: 'Flood reports ↓50% YoY' }
+    ];
+
+    const buildProgress = [
+      { icon: '🔨', title: 'Working prototype', status: 'Full stack runs the loop: report → score → map → alert → solution' },
+      { icon: '🌤', title: 'Live data ingestion', status: 'Open-Meteo weather fused every 15 min across 20 seeded neighbourhoods' },
+      { icon: '📟', title: 'Inclusive design', status: "USSD flow built and tested on Africa's Talking sandbox" },
+      { icon: '🗺', title: 'Spatial foundation', status: 'PostGIS schema with GIST-indexed geometry for 100 Lagos areas' },
+      { icon: '🛠', title: 'Solutions engine', status: '16 vetted, costed actions triggered by live scores' },
+      { icon: '🇳🇬', title: 'Scale-ready', status: 'Schema designed for 35 states; NBS LGA data ready' }
+    ];
+
+    const marketData = [
+      { segment: 'Residents', need: 'Know local risk + what to do', offer: 'Free app + USSD + community solution list' },
+      { segment: 'Urban planners', need: 'Prioritise interventions by data', offer: 'Planner dashboard + Solutions Engine + CSV export' },
+      { segment: 'Health agencies', need: 'Target heat-stress interventions', offer: 'Heat score API + cooling-hub prescriptions' },
+      { segment: 'NGOs & CSOs', need: 'Prove deforestation; mobilise volunteers', offer: 'Green-space tracker + adopt-a-tree integration' },
+      { segment: 'Insurance / Real estate', need: 'Price flood risk at neighbourhood level', offer: 'Risk score API (paid tier)' }
+    ];
+
+    const impactMilestones = [
+      { title: 'Lagos rollout', target: '100 neighbourhoods · 50,000 registered citizens' },
+      { title: 'Satellite integration', target: 'Daily MODIS LST + bi-weekly Landsat NDVI batch jobs live' },
+      { title: 'Government partnership', target: 'Lagos State Ministry using dashboard for climate budget' },
+      { title: 'Solutions enacted', target: '≥3 society-tier actions per pilot ward' },
+      { title: 'National expansion', target: 'Abuja, Kano, Port Harcourt — same infrastructure' },
+      { title: 'Feature-phone reach', target: '500,000 USSD sessions/month' }
+    ];
+
+    // Initialize data
+    function initTables() {
+      // Problem table
+      const problemTable = document.getElementById('problemTable');
+      if (problemTable) {
+        problemTable.innerHTML = problemData.map(item => `
+          <tr>
+            <td class="font-medium">${item.gap}</td>
+            <td class="text-[var(--muted)]">${item.reality}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Solution cards
+      const solutionCards = document.getElementById('solutionCards');
+      if (solutionCards) {
+        solutionCards.innerHTML = solutionData.map(item => `
+          <div class="data-card border-l-2" style="border-left-color: ${item.color}">
+            <div class="text-2xl mb-2">${item.icon}</div>
+            <h4 class="font-semibold mb-1">${item.title}</h4>
+            <p class="text-sm text-[var(--muted)] mb-2">${item.desc}</p>
+            <p class="text-xs text-[var(--accent)]">${item.users}</p>
+          </div>
+        `).join('');
+      }
+
+      // Loop steps
+      const loopStepsEl = document.getElementById('loopSteps');
+      if (loopStepsEl) {
+        loopStepsEl.innerHTML = loopSteps.map(item => `
+          <div class="data-card text-center">
+            <div class="w-8 h-8 rounded-full bg-[var(--accent)] text-[var(--bg)] font-bold flex items-center justify-center mx-auto mb-2">${item.num}</div>
+            <h4 class="font-semibold text-sm mb-1">${item.title}</h4>
+            <p class="text-xs text-[var(--muted)]">${item.desc}</p>
+          </div>
+        `).join('');
+      }
+
+      // Tech table
+      const techTable = document.getElementById('techTable');
+      if (techTable) {
+        techTable.innerHTML = techData.map(item => `
+          <tr>
+            <td class="font-medium">${item.layer}</td>
+            <td class="mono text-sm text-[var(--muted)]">${item.tech}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Society solutions
+      const societySolutionsEl = document.getElementById('societySolutions');
+      if (societySolutionsEl) {
+        societySolutionsEl.innerHTML = societySolutions.map(item => `
+          <div class="bg-[var(--bg)] rounded p-3 border border-[var(--border)]">
+            <h5 class="font-medium text-sm mb-1">${item.title}</h5>
+            <p class="text-xs text-[var(--muted)] mb-1">${item.detail}</p>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="mono text-[var(--accent)]">${item.cost}</span>
+              <span class="text-[var(--muted)]">→ ${item.kpi}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Govt solutions
+      const govtSolutionsEl = document.getElementById('govtSolutions');
+      if (govtSolutionsEl) {
+        govtSolutionsEl.innerHTML = govtSolutions.map(item => `
+          <div class="bg-[var(--bg)] rounded p-3 border border-[var(--border)]">
+            <h5 class="font-medium text-sm mb-1">${item.title}</h5>
+            <p class="text-xs text-[var(--muted)] mb-1">${item.detail}</p>
+            <div class="flex items-center gap-2 text-xs">
+              <span class="mono text-[var(--accent)]">${item.cost}</span>
+              <span class="text-[var(--muted)]">→ ${item.kpi}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Build progress
+      const buildProgressEl = document.getElementById('buildProgress');
+      if (buildProgressEl) {
+        buildProgressEl.innerHTML = buildProgress.map(item => `
+          <div class="data-card">
+            <div class="text-xl mb-2">${item.icon}</div>
+            <h4 class="font-semibold text-sm mb-1">${item.title}</h4>
+            <p class="text-xs text-[var(--muted)]">${item.status}</p>
+          </div>
+        `).join('');
+      }
+
+      // Market table
+      const marketTable = document.getElementById('marketTable');
+      if (marketTable) {
+        marketTable.innerHTML = marketData.map(item => `
+          <tr>
+            <td class="font-medium">${item.segment}</td>
+            <td class="text-[var(--muted)]">${item.need}</td>
+            <td class="text-sm">${item.offer}</td>
+          </tr>
+        `).join('');
+      }
+
+      // Impact milestones
+      const impactMilestonesEl = document.getElementById('impactMilestones');
+      if (impactMilestonesEl) {
+        impactMilestonesEl.innerHTML = impactMilestones.map(item => `
+          <div class="data-card">
+            <h4 class="font-semibold text-sm mb-1">${item.title}</h4>
+            <p class="text-xs text-[var(--muted)]">${item.target}</p>
+          </div>
+        `).join('');
+      }
+    }
+
+    // Navigation
+    let currentSlide = 1;
+    const totalSlides = 11;
+
+    function createNavDots() {
+      const navDots = document.getElementById('navDots');
+      if (!navDots) return;
+      
+      for (let i = 1; i <= totalSlides; i++) {
+        const dot = document.createElement('button');
+        dot.className = `nav-dot ${i === 1 ? 'active' : ''}`;
+        dot.setAttribute('role', 'tab');
+        dot.setAttribute('aria-label', `Go to slide ${i}`);
+        dot.setAttribute('aria-selected', i === 1 ? 'true' : 'false');
+        dot.addEventListener('click', () => goToSlide(i));
+        navDots.appendChild(dot);
+      }
+    }
+
+    function updateNavDots() {
+      const dots = document.querySelectorAll('.nav-dot');
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index + 1 === currentSlide);
+        dot.setAttribute('aria-selected', index + 1 === currentSlide ? 'true' : 'false');
+      });
+      
+      const currentSlideEl = document.getElementById('currentSlide');
+      if (currentSlideEl) {
+        currentSlideEl.textContent = currentSlide;
+      }
+    }
+
+    function goToSlide(num) {
+      currentSlide = num;
+      updateNavDots();
+      
+      const slide = document.querySelector(`[data-slide="${num}"]`);
+      if (slide) {
+        slide.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // Intersection Observer for slides
+    function initSlideObserver() {
+      const slides = document.querySelectorAll('.slide');
+      
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            const slideNum = parseInt(entry.target.dataset.slide);
+            if (slideNum !== currentSlide) {
+              currentSlide = slideNum;
+              updateNavDots();
+            }
+          }
+        });
+      }, {
+        threshold: 0.5,
+        rootMargin: '-10% 0px -10% 0px'
+      });
+
+      slides.forEach(slide => observer.observe(slide));
+    }
+
+    // Keyboard navigation
+    function initKeyboardNav() {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+          e.preventDefault();
+          if (currentSlide < totalSlides) {
+            goToSlide(currentSlide + 1);
+          }
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (currentSlide > 1) {
+            goToSlide(currentSlide - 1);
+          }
+        }
+      });
+    }
+
+    function fitSlidesForPrint() {
+      const slides = document.querySelectorAll('.slide');
+
+      slides.forEach((slide) => {
+        const inner = slide.firstElementChild;
+        if (!inner) return;
+
+        inner.style.setProperty('--print-scale', '1');
+
+        const slideStyle = getComputedStyle(slide);
+        const availableWidth =
+          slide.clientWidth - parseFloat(slideStyle.paddingLeft) - parseFloat(slideStyle.paddingRight);
+        const availableHeight =
+          slide.clientHeight - parseFloat(slideStyle.paddingTop) - parseFloat(slideStyle.paddingBottom);
+
+        const contentWidth = inner.scrollWidth;
+        const contentHeight = inner.scrollHeight;
+
+        if (!contentWidth || !contentHeight) return;
+
+        const widthScale = availableWidth / contentWidth;
+        const heightScale = availableHeight / contentHeight;
+        const scale = Math.min(widthScale, heightScale, 1);
+
+        inner.style.setProperty('--print-scale', scale.toFixed(4));
+      });
+    }
+
+    function resetPrintFit() {
+      document.querySelectorAll('.slide > div').forEach((inner) => {
+        inner.style.setProperty('--print-scale', '1');
+      });
+    }
+
+    // Animate numbers
+    function animateValue(element, start, end, duration) {
+      if (!element) return;
+      const startTime = performance.now();
+      
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.floor(start + (end - start) * eased);
+        
+        element.textContent = current.toLocaleString();
+        
+        if (progress < 1) {
+          requestAnimationFrame(update);
+        }
+      }
+      
+      requestAnimationFrame(update);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      initTables();
+      createNavDots();
+      initSlideObserver();
+      initKeyboardNav();
+      
+      // Set total slides
+      const totalSlidesEl = document.getElementById('totalSlides');
+      if (totalSlidesEl) {
+        totalSlidesEl.textContent = totalSlides;
+      }
+      
+      // Initial visibility
+      const firstSlide = document.querySelector('[data-slide="1"]');
+      if (firstSlide) {
+        firstSlide.classList.add('visible');
+      }
+    });
+
+    window.addEventListener('beforeprint', fitSlidesForPrint);
+    window.addEventListener('afterprint', resetPrintFit);
+
+    if (window.matchMedia) {
+      const printMedia = window.matchMedia('print');
+      if (printMedia.addEventListener) {
+        printMedia.addEventListener('change', (event) => {
+          if (event.matches) {
+            fitSlidesForPrint();
+          } else {
+            resetPrintFit();
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

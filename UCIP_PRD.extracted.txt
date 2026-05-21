@@ -1,0 +1,179 @@
+PRODUCT REQUIREMENTS DOCUMENT
+Urban Climate Intelligence Platform (UCIP)
+Team CoolCity  |  UNILAG National Design Competition 2026
+The 36°C Challenge  |  Sustainable Urban Design Track
+Demo Day: Wednesday (Sprint Target)
+Version 1.0  |  PRD Status: BUILD-READY
+Table of Contents
+1. Product Overview
+2. System Architecture
+3. Data Model & Schema
+4. API Specification
+5. Screen-by-Screen Build Spec
+6. Module 1: Urban Heat Mapping
+7. Module 2: Flood Risk Intelligence
+8. Module 3: Green Space Tracker
+9. USSD Integration
+10. Alert System
+11. Tech Stack & Dependencies
+12. Environment Setup
+13. Sprint Plan: Monday – Wednesday
+14. Demo Day Checklist
+15. Post-Demo Roadmap
+1. Product Overview
+1.1 One-Line Summary
+UCIP is a web/mobile app that crowdsources neighbourhood-level climate data from Lagos residents and fuses it with satellite imagery and weather APIs to produce real-time urban heat maps, flood risk dashboards, and green space health trackers.
+1.2 Problem Statement
+Lagos has zero neighbourhood-level climate monitoring. Federal weather stations provide city-wide readings but cannot detect localised heat islands, ward-level flood risk, or vegetation loss at the community scale. Residents have no way to know their neighbourhood’s climate risk, and planners have no data to prioritise interventions.
+1.3 Target Users
+1.4 Success Metrics (Demo Day)
+2. System Architecture
+2.1 High-Level Architecture
+The system follows a three-tier architecture with clear separation between data ingestion, processing, and presentation layers.
+Client Layer (React.js + Tailwind CSS)
+Single-page application served from Vercel. Leaflet.js renders interactive map layers. Progressive Web App (PWA) enabled for mobile install. Communicates with backend via REST API.
+API Layer (Node.js + Express)
+RESTful API server hosted on Vercel Serverless Functions. Handles authentication, report ingestion, data aggregation, and alert dispatch. Connects to Supabase for persistence and external APIs for satellite/weather data.
+Data Layer (Supabase / PostgreSQL + PostGIS)
+Supabase provides managed PostgreSQL with PostGIS spatial extensions. Stores citizen reports with geo-coordinates, aggregated heat scores, flood risk calculations, and NDVI time-series data. Real-time subscriptions power live dashboard updates.
+External Integrations
+2.2 Data Flow
+1. Citizen submits report → POST /api/reports → validated → stored in Supabase with PostGIS point geometry.
+2. Cron job (every 15 min) → fetches Open-Meteo forecast → stores latest readings per LGA.
+3. Daily batch → pulls MODIS land surface temperature + Landsat NDVI from Earth Engine → rasterises to neighbourhood grid → stores aggregated scores.
+4. Aggregation engine → combines citizen reports + satellite + weather → computes heat_score, flood_risk_score, ndvi_health per neighbourhood.
+5. Alert engine → checks thresholds → fires Firebase push + SMS via Africa’s Talking to subscribed residents.
+6. Client fetches → GET /api/heatmap, /api/flood-risk, /api/ndvi → Leaflet renders layers.
+3. Data Model & Schema
+3.1 Core Tables
+All tables use Supabase (PostgreSQL + PostGIS). Coordinates stored as PostGIS POINT geometry for spatial queries.
+Table: reports
+Table: weather_readings
+Table: neighbourhood_scores
+Table: users
+3.2 Key Indexes
+CREATE INDEX idx_reports_location ON reports USING GIST (location);
+CREATE INDEX idx_reports_type_created ON reports (report_type, created_at DESC);
+CREATE INDEX idx_reports_lga ON reports (lga, created_at DESC);
+CREATE INDEX idx_scores_lga ON neighbourhood_scores (lga);
+3.3 Scoring Algorithms
+Heat Score (0–10)
+heat_score = (0.4 × normalised_satellite_LST) + (0.35 × normalised_citizen_severity) + (0.25 × normalised_api_temperature)
+Where normalised values are min-max scaled within the city range. Citizen severity is the average of reports in the last 6 hours within the neighbourhood boundary, weighted by recency.
+Flood Risk Score (0–10)
+flood_risk = (0.3 × forecast_rainfall_norm) + (0.25 × historical_flood_freq) + (0.25 × elevation_risk) + (0.2 × citizen_flood_reports_norm)
+Elevation risk is inverse of SRTM elevation relative to local drainage basins. Historical flood frequency is computed from cumulative citizen reports.
+NDVI Health (0–1)
+Direct NDVI reading from Landsat/MODIS, averaged per neighbourhood polygon. Values below 0.3 trigger “vegetation loss” alerts. Week-over-week decline exceeding 0.05 triggers “active clearing” alert.
+4. API Specification
+Base URL: /api/v1  |  Format: JSON  |  Auth: Supabase JWT (optional for read, required for write)
+4.1 POST /reports — Request Body
+{
+"report_type": "heat",              // "heat" | "flood" | "clearing"
+"severity": 4,                       // 1–5 integer
+"latitude": 6.5244,                  // GPS latitude
+"longitude": 3.3792,                 // GPS longitude
+"lga": "Surulere",                   // Auto-detected or selected
+"notes": "Very hot in market area",  // Optional
+"photo": "<base64_or_url>",          // Optional
+"source": "app"                      // "app" | "ussd"
+}
+4.2 GET /heatmap — Response
+{
+"grid": [
+{ "lat": 6.52, "lng": 3.37, "heat_score": 7.8, "label": "Surulere" },
+{ "lat": 6.45, "lng": 3.40, "heat_score": 4.2, "label": "Ikoyi" }
+],
+"legend": { "min": 0, "max": 10, "unit": "composite score" },
+"updated_at": "2026-05-11T14:30:00Z"
+}
+5. Screen-by-Screen Build Spec
+Screen 1: Home Dashboard
+Screen 2: Report Submission
+Screen 3: Heat Map
+Screen 4: Planner Dashboard (Stretch Goal)
+If time permits, a read-only planner view showing: aggregated risk scores table by LGA, auto-generated summary text (“Mushin: heat score 8.2, flood risk 7.5, recommend tree planting and drainage audit”), and a CSV export button for the dataset.
+6. Module 1: Urban Heat Mapping
+Data Sources
+Satellite: MODIS Land Surface Temperature (MOD11A1) via Google Earth Engine — 1km resolution, daily. Landsat 8/9 thermal bands for higher-res (100m) snapshots.
+Weather API: Open-Meteo hourly temperature at Lagos coordinates.
+Citizen reports: Heat severity ratings (1–5) with GPS, aggregated by neighbourhood.
+Processing Pipeline
+1. Daily cron pulls MODIS LST for Lagos bounding box from Earth Engine.
+2. Rasterise to neighbourhood polygons (pre-defined GeoJSON for 100 Lagos neighbourhoods).
+3. Normalise satellite temp to 0–10 scale.
+4. Every 15 min: fetch Open-Meteo current temp, normalise.
+5. Every 15 min: aggregate citizen reports from last 6 hours per neighbourhood, compute mean severity, normalise.
+6. Compute heat_score = 0.4×satellite + 0.35×citizen + 0.25×weather.
+7. Store in neighbourhood_scores table.
+Rendering
+Leaflet.heat plugin reads /api/heatmap response. Each grid point [lat, lng, heat_score] rendered as heatmap intensity. Colour scale: green (0–3) → yellow (4–6) → red (7–10).
+7. Module 2: Flood Risk Intelligence
+Data Sources
+Rainfall forecast: Open-Meteo 6-hour precipitation forecast.
+Elevation: SRTM 30m DEM, pre-processed to identify low-lying zones per neighbourhood.
+Citizen reports: Flood severity reports with GPS.
+Historical frequency: Running count of flood reports per neighbourhood over time.
+Alert Logic
+IF forecast_rainfall > 30mm AND flood_risk_score > 6 THEN trigger flood alert for affected neighbourhoods. Alert sent via Firebase push notification to subscribed users + SMS via Africa’s Talking to registered phone numbers in the affected LGA.
+8. Module 3: Green Space Tracker
+NDVI Pipeline
+1. Pull Landsat NDVI composites from Earth Engine (bi-weekly).
+2. Clip to neighbourhood polygons.
+3. Compute mean NDVI per neighbourhood.
+4. Compare to previous period: flag decline > 0.05.
+5. Store time-series in neighbourhood_scores.
+Leaderboard
+GET /leaderboard returns neighbourhoods sorted by NDVI descending. Frontend renders progress bars. Colour: green (>0.5), yellow (0.3–0.5), red (<0.3).
+9. USSD Integration
+USSD flow via Africa’s Talking API. Callback endpoint: POST /api/v1/ussd/callback.
+Menu Flow
+Dial *384*UCIP#
+Screen 1: Welcome to UCIP. Select:
+1. Report Heat
+2. Report Flood
+3. Report Tree Clearing
+4. Check My Area
+Screen 2 (Report Heat): Rate heat severity:
+1. Mild
+2. Moderate
+3. Hot
+4. Very Hot
+5. Extreme
+Screen 3: Location? 
+1. Use phone location
+2. Type neighbourhood name
+Screen 4: Report submitted! ID: RPT-2847. You will receive alerts for your area. END.
+Session state tracked via Africa’s Talking sessionId. Each interaction maps to a report_type + severity + location, then calls the same POST /reports endpoint with source: “ussd”.
+10. Alert System
+11. Tech Stack & Dependencies
+12. Environment Setup
+Step 1: Clone & Install
+git clone https://github.com/coolcity/ucip.git
+cd ucip && npm install
+Step 2: Environment Variables (.env.local)
+VITE_SUPABASE_URL=https://xxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
+VITE_OPEN_METEO_BASE=https://api.open-meteo.com/v1
+AT_API_KEY=sandbox_key_here  # Africa’s Talking
+FIREBASE_SERVER_KEY=AAAA...  # FCM
+Step 3: Database Setup
+Run supabase/migrations/001_init.sql in Supabase SQL editor to create tables, indexes, and enable PostGIS extension.
+Step 4: Run Dev Server
+npm run dev  # Frontend at localhost:5173
+npm run api  # API at localhost:3001
+13. Sprint Plan: Monday – Wednesday
+Monday (Today) — Foundation
+Tuesday — Core Features
+Wednesday (Demo Day) — Polish + Demo Prep
+14. Demo Day Checklist
+Demo Script (5 minutes)
+[0:00–0:30] Context — “Lagos hit 36°C this Harmattan. Residents have zero neighbourhood-level climate data. UCIP changes that.”
+[0:30–1:30] Live Report — Open app on phone. Show GPS auto-detect. Tap Heat severity 4. Submit. Show success toast. “That report is now live on the map.”
+[1:30–3:00] Map Demo — Switch to Heat Map. Show heat overlay with colour zones. Toggle Flood layer — show blue markers. Toggle NDVI — show green space health. “All three layers, real data, one dashboard.”
+[3:00–4:00] Alert Trigger — “Watch what happens when flood risk exceeds threshold.” Trigger test alert. Show push notification arriving on phone. “Every subscribed resident in that LGA just got this.”
+[4:00–4:30] USSD — Show terminal: dial *384*UCIP#. Walk through menu. “40% of Lagos residents use feature phones. They’re not excluded.”
+[4:30–5:00] Close — “Lagos MVP today. 35 more states tomorrow. UCIP — climate intelligence for everyone.”
+Pre-Demo Verification
+15. Post-Demo Roadmap
+End of PRD  |  Team CoolCity  |  UCIP v1.0  |  BUILD-READY

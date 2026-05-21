@@ -1,0 +1,18 @@
+flowchart TD
+    A[Restart Project] --> B[Open PowerShell at UCIP root]
+    B --> C[Stop old Node processes<br/>Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force]
+    C --> D[Install dependencies<br/>npm install]
+    D --> E[Start app and API<br/>npm run dev]
+    E --> F[Health check<br/>http://localhost:3001/api/v1/health -> ok true]
+
+    F --> G[USSD Demo in second terminal]
+    G --> H[Step 1: Open menu<br/>curl.exe -X POST http://localhost:3001/api/v1/ussd/callback -d sessionId=demo-1&phoneNumber=%2B2348012345678&serviceCode=*384*UCIP%23&text=]
+    H --> I[Expect CON menu options]
+    I --> J[Step 2: Choose Heat<br/>text=1]
+    J --> K[Expect CON severity prompt]
+    K --> L[Step 3: Choose severity 4<br/>text=1*4]
+    L --> M[Expect CON location prompt]
+    M --> N[Step 4: Use my area and submit<br/>text=1*4*1]
+    N --> O[Expect END + RPT-XXXX]
+
+    O --> P[Show report ID in demo video]

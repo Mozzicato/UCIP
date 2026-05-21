@@ -1,0 +1,10 @@
+{
+  "name": "UCIP — Urban Climate Intelligence Platform",
+  "short_name": "UCIP",
+  "description": "Neighbourhood-level climate intelligence for Lagos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "icons": []
+}

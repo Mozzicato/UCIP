@@ -1,0 +1,20 @@
+{
+  "name": "ucip",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Urban Climate Intelligence Platform — Team CoolCity, UNILAG 2026",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -n client,api -c blue,green \"npm run dev -w client\" \"npm run dev -w server\"",
+    "dev:client": "npm run dev -w client",
+    "dev:api": "npm run dev -w server",
+    "build": "npm run build -w client",
+    "seed": "npm run seed -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
