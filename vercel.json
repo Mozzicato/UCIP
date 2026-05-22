@@ -2,11 +2,6 @@
   "version": 2,
   "buildCommand": "npm run build:all",
   "framework": "vite",
-  "env": {
-    "VITE_API_BASE": {
-      "description": "Backend API base URL for frontend requests"
-    }
-  },
   "regions": ["iad1"],
   "functions": {
     "server/src/index.js": {
