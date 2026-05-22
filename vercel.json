@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:all",
-  "framework": "vite",
+  "buildCommand": "npm run build -w client",
+  "outputDirectory": "client/dist",
+  "installCommand": "npm install",
   "regions": ["iad1"],
   "functions": {
-    "server/src/index.js": {
-      "runtime": "nodejs20.x",
+    "api/[...path].js": {
       "memory": 512,
       "maxDuration": 30
     }

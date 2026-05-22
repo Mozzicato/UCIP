@@ -12,7 +12,6 @@
     "dev:client": "npm run dev -w client",
     "dev:api": "npm run dev -w server",
     "build": "npm run build -w client",
-    "build:all": "npm run build -w client && npm install --workspaces=false -w server --only=production",
     "start": "npm start -w server",
     "seed": "npm run seed -w server",
     "deploy": "vercel --prod"
