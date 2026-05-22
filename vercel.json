@@ -5,9 +5,12 @@
   "installCommand": "npm install",
   "regions": ["iad1"],
   "functions": {
-    "api/[...path].js": {
+    "api/server.js": {
       "memory": 512,
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/server" }
+  ]
 }
